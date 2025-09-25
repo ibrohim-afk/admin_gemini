@@ -34,7 +34,7 @@
 
             const processData = async () => {
                 const url = sheetUrlInput.value.trim();
-                if (!url) { alert("URL Google Sheet .csv tidak boleh kosong."); return; }
+                if (!url) { alert("https://docs.google.com/spreadsheets/d/e/2PACX-1vTBYbGhaNy_bulHoS38IPv7zOpKCSlqUPBC4geGa-ec_eKNc1dwhjZ6njktcSFB2gsh8pIsddWWczQ_/pub?gid=0&single=true&output=csv"); return; }
                 
                 loadingIndicator.classList.remove('hidden');
                 remindersContainer.innerHTML = '';
@@ -100,7 +100,7 @@
                 // --- PERBAIKAN DI SINI ---
                 // Menggunakan header 'Nomor WhatsApp' yang lebih umum
                 const waNumber = item['Nomor WhatsApp'] ? item['Nomor WhatsApp'].replace(/\D/g, '') : '';
-                const message = encodeURIComponent(`Halo ${name}, kami mengingatkan bahwa hari ini adalah hari terakhir masa tenggang untuk kegiatan "${activity}". Mohon segera selesaikan proses Anda. Terima kasih.`);
+                const message = encodeURIComponent(`Halo ${name}, kami mengingatkan bahwa hari ini adalah hari terakhir masa tenggang untuk Berlangganan "${Nama Kegiatan}". Mohon segera Batalkan Langganan anda di Play store. Terima kasih.`);
                 const waLink = `https://wa.me/${waNumber}?text=${message}`;
                 
                 const card = document.createElement('div');
