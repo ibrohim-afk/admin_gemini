@@ -34,7 +34,7 @@
 
             const processData = async () => {
                 const url = sheetUrlInput.value.trim();
-                if (!url) { alert("https://docs.google.com/spreadsheets/d/e/2PACX-1vTBYbGhaNy_bulHoS38IPv7zOpKCSlqUPBC4geGa-ec_eKNc1dwhjZ6njktcSFB2gsh8pIsddWWczQ_/pub?gid=0&single=true&output=csv"); return; }
+                if (!url) { alert("URL Google Sheet .csv tidak boleh kosong."); return; }
                 
                 loadingIndicator.classList.remove('hidden');
                 remindersContainer.innerHTML = '';
@@ -100,14 +100,14 @@
                 // --- PERBAIKAN DI SINI ---
                 // Menggunakan header 'Nomor WhatsApp' yang lebih umum
                 const waNumber = item['Nomor WhatsApp'] ? item['Nomor WhatsApp'].replace(/\D/g, '') : '';
-                const message = encodeURIComponent(`Halo ${name}, kami mengingatkan bahwa hari ini adalah hari terakhir masa tenggang untuk Berlangganan Gemini Pro AI. Mohon segera Batalkan langganan anda di Aplikasi Play store. Terima kasih.`);
+                const message = encodeURIComponent(`Halo ${name}, kami mengingatkan bahwa hari ini adalah hari terakhir masa tenggang untuk kegiatan "${activity}". Mohon segera selesaikan proses Anda. Terima kasih.`);
                 const waLink = `https://wa.me/${waNumber}?text=${message}`;
                 
                 const card = document.createElement('div');
                 card.className = 'bg-white p-6 rounded-xl shadow-md border-l-4 border-red-500';
                 card.innerHTML = `
                     <h3 class="font-bold text-xl text-gray-800">${name}</h3>
-                    <p class="text-sm text-gray-500 mb-2">Kegiatan: ${namaKegiatan}</p>
+                    <p class="text-sm text-gray-500 mb-2">Kegiatan: ${activity}</p>
                     <p class="text-gray-700 mb-4">Nomor WA: ${waNumber || 'Tidak ada'}</p>
                     <a href="${waLink}" target="_blank" class="w-full text-center block bg-green-500 text-white font-semibold py-2 px-4 rounded-lg hover:bg-green-600 transition">
                         Hubungi via WhatsApp
