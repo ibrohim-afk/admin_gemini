@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dasbor Admin - Pengingat WhatsApp</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style> body { font-family: 'Inter', sans-serif; } </style>
+</head>
+<body class="bg-gray-100">
+    <div class="container mx-auto p-4 md:p-8">
+        <header class="text-center mb-8">
+            <h1 class="text-3xl md:text-4xl font-bold text-gray-900">Dasbor Admin</h1>
+            <p class="mt-2 text-gray-600">Daftar peserta yang masa tenggangnya berakhir hari ini.</p>
+        </header>
+        <div class="flex flex-col sm:flex-row gap-2 mb-8">
+            <input type="url" id="sheetUrl" placeholder="Tempel URL .csv dari Google Sheets di sini" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-sm">
+            <button id="loadDataBtn" class="bg-blue-600 text-white font-bold px-6 py-3 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition duration-300 shadow-lg">
+                Muat Data Hari Ini
+            </button>
+        </div>
+        <div id="loadingIndicator" class="text-center mb-4 hidden"><p>Mencari data...</p></div>
+        <div id="reminders" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <!-- Kartu Pengingat akan muncul di sini -->
+        </div>
+    </div>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const loadDataBtn = document.getElementById('loadDataBtn');
+            const sheetUrlInput = document.getElementById('sheetUrl');
+            const loadingIndicator = document.getElementById('loadingIndicator');
+            const remindersContainer = document.getElementById('reminders');
+
+            const processData = async () => {
+                const url = sheetUrlInput.value.trim();
+                if (!url) { alert("URL Google Sheet .csv tidak boleh kosong."); return; }
+                
+                loadingIndicator.classList.remove('hidden');
+                remindersContainer.innerHTML = '';
+                
+                try {
+                    const response = await fetch(url);
+                    if (!response.ok) {
+                        throw new Error('Gagal mengambil data dari URL. Pastikan URL benar dan sheet sudah dipublikasikan.');
+                    }
+                    const csvText = await response.text();
+                    const rows = csvText.split('\n').map(r => r.trim()).filter(Boolean);
+                    
+                    if (rows.length < 2) { // Cek jika sheet kosong (hanya ada header)
+                        remindersContainer.innerHTML = '<p class="text-gray-500 col-span-full text-center">Tidak ada data pendaftar di spreadsheet.</p>';
+                        return;
+                    }
+                    
+                    const headers = rows[0].split(',').map(h => h.trim());
+                    
+                    const data = rows.slice(1).map(row => {
+                        const values = row.split(',');
+                        let entry = {};
+                        headers.forEach((h, i) => entry[h] = values[i] ? values[i].trim() : '');
+                        return entry;
+                    });
+                    
+                    const today = new Date();
+                    today.setHours(0, 0, 0, 0);
+                    let found = 0;
+
+                    data.forEach(item => {
+                        // Gunakan header yang sesuai dari sheet
+                        const startDate = new Date(item['Tanggal Mulai Pendaftaran']);
+                        const graceDays = parseInt(item['Masa Tenggang (Hari)'], 10);
+                        if (isNaN(startDate.getTime()) || isNaN(graceDays)) return;
+
+                        const endDate = new Date(startDate);
+                        endDate.setDate(startDate.getDate() + graceDays);
+                        endDate.setHours(0, 0, 0, 0);
+
+                        if (endDate.getTime() === today.getTime()) {
+                            found++;
+                            const card = createReminderCard(item);
+                            remindersContainer.appendChild(card);
+                        }
+                    });
+
+                    if(found === 0) {
+                        remindersContainer.innerHTML = '<p class="text-gray-500 col-span-full text-center">Tidak ada masa tenggang yang berakhir hari ini.</p>';
+                    }
+
+                } catch (e) {
+                    console.error("Error:", e);
+                    alert('Gagal memuat data. Periksa kembali URL Anda dan pastikan nama kolom di sheet sudah benar.');
+                } finally {
+                    loadingIndicator.classList.add('hidden');
+                }
+            };
+            
+            const createReminderCard = (item) => {
+                const name = item['Nama Lengkap'];
+                const activity = item['Nama Kegiatan'];
+                // --- PERBAIKAN DI SINI ---
+                // Menggunakan header 'Nomor WhatsApp' yang lebih umum
+                const waNumber = item['Nomor WhatsApp'] ? item['Nomor WhatsApp'].replace(/\D/g, '') : '';
+                const message = encodeURIComponent(`Halo ${name}, kami mengingatkan bahwa hari ini adalah hari terakhir masa tenggang untuk kegiatan "${activity}". Mohon segera selesaikan proses Anda. Terima kasih.`);
+                const waLink = `https://wa.me/${waNumber}?text=${message}`;
+                
+                const card = document.createElement('div');
+                card.className = 'bg-white p-6 rounded-xl shadow-md border-l-4 border-red-500';
+                card.innerHTML = `
+                    <h3 class="font-bold text-xl text-gray-800">${name}</h3>
+                    <p class="text-sm text-gray-500 mb-2">Kegiatan: ${activity}</p>
+                    <p class="text-gray-700 mb-4">Nomor WA: ${waNumber || 'Tidak ada'}</p>
+                    <a href="${waLink}" target="_blank" class="w-full text-center block bg-green-500 text-white font-semibold py-2 px-4 rounded-lg hover:bg-green-600 transition">
+                        Hubungi via WhatsApp
+                    </a>
+                `;
+                return card;
+            };
+
+            loadDataBtn.addEventListener('click', processData);
+            
+            const savedUrl = localStorage.getItem('adminSheetUrl');
+            if(savedUrl) {
+                sheetUrlInput.value = savedUrl;
+                processData();
+            }
+            sheetUrlInput.addEventListener('change', () => localStorage.setItem('adminSheetUrl', sheetUrlInput.value));
+        });
+    </script>
+</body>
+</html>
+
